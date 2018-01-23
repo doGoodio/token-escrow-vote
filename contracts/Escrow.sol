@@ -5,10 +5,11 @@ pragma solidity ^0.4.15;
       a. tokens passed and b. no vote and c. company agrees.
  */
 
+// 
     // allow revoting?
   // should we include self destruct after usefulness of escrow has expired?
 
-import "../../MiniPre/contracts/ERC20.sol";
+import "../test/mocks/ERC20.sol";
 
 contract Escrow {
 

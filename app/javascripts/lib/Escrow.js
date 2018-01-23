@@ -1,15 +1,19 @@
-var Escrow = undefined;
+var MockEscrow = artifacts.require('../../../test/mocks/MockEscrow.sol');
+var Escrow = artifacts.require('../../../build/contracts/Escrow.sol');
+var escrow = undefined;
+
+var simulated = false;
+var testrpc = true;
+var failPercentage = 0.01;
 
 // =============
 // Init function
 // =============
-
-
-simulated = true;
-failPercentage = 0.1;
-function getDeployedEscrow() {
-  return testrpc ? MockEscrow.Deployed()
-                 : Escrow.Deployed();
+exports.init = async (web3Params) => {
+  if (testrpc)
+    escrow = await MockEscrow.new(web3Params);
+  else
+    escrow = await Escrow.Deployed();
 }
 
 // =================
@@ -22,17 +26,16 @@ function getDeployedEscrow() {
 }
 
 // return escrow id, 24 bytes
-function createEscrow(numRounds, token, arbitor, company, payoutAddr, minVotes) {
+exports.createEscrow = async (numRounds, arbitrator, token, payoutAddr, minVotes, web3Params) => {
+  const company = web3Params['from'];
   if (simulated) {
     if (Math.random() < failPercentage) throw('Escrow not created!');
     if (Math.random() < failPercentage) throw('Tx failed!');
     return '0xae67984724872020842709842faee8a89a99Ae5d';
 
   }
-  console.log('Created escrow: ' 
-              + numRounds + ' ' + token + ' ' + arbitor + ' ' + company + ' ' + payoutAddr);    
-  escrow = await getDeployedEscrow();
-  escrow.createEscrow(numRounds, token, arbitor, company, payoutAddr);
+  console.log('Created escrow: ' + numRounds + ' ' + token + ' ' + arbitrator + ' ' + company + ' ' + payoutAddr);    
+  await escrow.createEscrow(numRounds, arbitrator, token, payoutAddr, minVotes, web3Params);
 }
 // ==============
 // User functions
@@ -72,7 +75,7 @@ var singleVote = async(yes) => {
 }
 
 // maybe add
-function getEscrowInfo();
+//function getEscrowInfo();
 /*
 
 var constructor = async (numRounds, controller, token) => {
