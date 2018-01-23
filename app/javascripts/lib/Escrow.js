@@ -19,15 +19,30 @@ exports.init = async (web3Params) => {
 // 
 // return escrow id, 24 bytes
 exports.createEscrow = async (numRounds, arbitrator, token, payoutAddr, minVotes, web3Params) => {
-  const company = web3Params['from'];
-  if (simulated) {
-    if (Math.random() < failPercentage) throw('Escrow not created!');
-    if (Math.random() < failPercentage) throw('Tx failed!');
-    return '0xae67984724872020842709842faee8a89a99Ae5d';
-
-  }
-  console.log('Created escrow: ' + numRounds + ' ' + token + ' ' + arbitrator + ' ' + company + ' ' + payoutAddr);    
-  await escrow.createEscrow(numRounds, arbitrator, token, payoutAddr, minVotes, web3Params);
+  let promise = new Promise(async (resolve, reject) => {
+    const company = web3Params['from'];
+    if (simulated) {
+      if (Math.random() < failPercentage) reject('Tx failed!');
+      return resolove('0xae67984724872020842709842faee8a89a99Ae5d');
+    }
+    
+    var event = escrow.events.EscrowCreation({filter: {controller: company}});
+    
+    var listener = async(result) => {
+      const id = await Escrow.at(result.id);
+      resolve(id);
+    }
+    
+    event.once('data', listener);
+    event.once('error', e => reject(e));
+    
+    const tx = await escrow.createEscrow(numRounds, arbitrator, token, payoutAddr, minVotes)
+          .send(web3Params)
+          .catch(e => reject(e));
+    console.log('Created escrow: ' + numRounds + ' ' + token + ' ' + arbitrator + ' ' + company + ' ' + payoutAddr);    
+  });
+  
+  return promise;
 }
 
 //user
