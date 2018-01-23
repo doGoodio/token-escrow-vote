@@ -1,12 +1,9 @@
 // var events = require('./../app/javascripts/events');
 // var util = require('./../app/javascripts/util');
 
-import * as EscrowCon from '../app/javascripts/lib/Escrow';
+import * as EscrowInterface from '../app/javascripts/lib/Escrow';
 
-var EscrowFactory = artifacts.require('MockEscrowFactory.sol');
-var Escrow = artifacts.require('MockEscrow.sol');
-var MainToken = artifacts.require('MockMainToken.sol');
-var MiniMeTokenFactory = artifacts.require('MockMiniMeTokenFactory.sol');
+var ERC20 = artifacts.require('ERC20.sol');
 
 var chai = require('chai')
 const assert = require("chai").use(require("chai-as-promised")).assert;
@@ -19,31 +16,33 @@ contract('Escrow', function (accounts) {
   const account1 = accounts[0];
   const account2 = accounts[1];
   const account3 = accounts[2];
-  const walletAddress = accounts[3];
-  const oracleCBAddress = accounts[4];
+  const payoutAddress = accounts[3];
+  const arbitrator = accounts[4];
 
-  var escrow;
+//  var escrow;
   var controller = account1;
-  var escrowFactory;
+  var erc20;
 
-  describe('works with minime token', async () => {
-    var minimetoken;
+  describe('test 1', async () => {
 
     beforeEach(async () => {
+      erc20 = await ERC20.new({from: account1});
+      await EscrowInterface.init({from: account1});
+      // escrow = await Escrow.new({from: account1});
 /* no interface
-      escrowFactory = await EscrowFactory.new({from: account1});
-      const mmtf = await MiniMeTokenFactory.new({from: account1});
-
       var numRounds  = new BigNumber(3);
-      minimetoken = await MainToken.new(mmtf.address, {from: account1});
-
       //todo fix this
       var tx = await escrowFactory.createEscrow(numRounds, controller, minimetoken.address, {from: account1});
 */
-      const mmtf = await MiniMeTokenFactory.new({from: account1});
-      minimetoken = await MainToken.new(mmtf.address, {from: account1});
-      EscrowCon(new BigNumber(3), account2, minimetoken.address);
     });
+
+    it('1', async () => {
+      const numRounds = new BigNumber(3);
+      const minVotes = new BigNumber(30);
+
+      await EscrowInterface.createEscrow(numRounds, arbitrator, erc20.address, payoutAddress, minVotes, {from: account1});
+    });
+
 /*
     it('notifies us an escrow was created', async (done) => {
       const numRounds  = new BigNumber(3);
@@ -69,9 +68,6 @@ contract('Escrow', function (accounts) {
       // -----------------------------------------
     });
 */
-    it('', async () => {
-      
-    });
 
   });
 });

@@ -7,8 +7,8 @@ contract MockEscrow is Escrow {
   uint256 public blockTime__;
 
   
-  function MockEscrow (uint _numRounds, address _controller, address _token)
-    Escrow(_numRounds, _controller, _token)
+  function MockEscrow ()
+    Escrow()
   {}
 
 
