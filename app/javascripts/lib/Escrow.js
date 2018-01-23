@@ -5,6 +5,7 @@ var escrow = undefined;
 var simulated = false;
 var testrpc = true;
 var failPercentage = 0.01;
+var escrowdata = [];
 
 // =============
 // Init function
@@ -16,41 +17,31 @@ exports.init = async (web3Params) => {
     escrow = await Escrow.Deployed();
 }
 
+// ================ WATCH =============
+escrow.EscrowCreation().watch(function(error, result) {
+  if (!error) {
+    escrowdata.push(result.args);
+    console.log("company created: " + result.args.company + " with id " + result.args.id);
+});
+
 // =================
 // Company functions
 // =================
-  var setRound = async(begin, end) => {
+var setRound = async(begin, end) => {
   // begin timestamp
-}
   const tx = await escrow.setRoundWindow(roundNum, start, end).send({from: account1})
 }
 
 // return escrow id, 24 bytes
-exports.createEscrow = async (numRounds, arbitrator, token, payoutAddr, minVotes, web3Params) => {
-  let promise = new Promise(async (resolve, reject) => {
+var createEscrow = async (numRounds, arbitrator, token, payoutAddr, minVotes, web3Params) => {
     const company = web3Params['from'];
     if (simulated) {
       if (Math.random() < failPercentage) reject('Tx failed!');
-      return resolove('0xae67984724872020842709842faee8a89a99Ae5d');
+      return '0xae67984724872020842709842faee8a89a99Ae5d';
     }
     
-    var event = escrow.events.EscrowCreation({filter: {controller: company}});
-    
-    var listener = async(result) => {
-      const id = await Escrow.at(result.id);
-      resolve(id);
-    }
-    
-    event.once('data', listener);
-    event.once('error', e => reject(e));
-    
-    const tx = await escrow.createEscrow(numRounds, arbitrator, token, payoutAddr, minVotes)
-          .send(web3Params)
-          .catch(e => reject(e));
+    const tx = await escrow.createEscrow(numRounds, arbitrator, token, payoutAddr, minVotes);
     console.log('Created escrow: ' + numRounds + ' ' + token + ' ' + arbitrator + ' ' + company + ' ' + payoutAddr);    
-  });
-  
-  return promise;
 }
 // ==============
 // User functions
