@@ -9,7 +9,7 @@ pragma solidity ^0.4.15;
     // allow revoting?
   // should we include self destruct after usefulness of escrow has expired?
 
-import "../test/mocks/ERC20.sol";
+import "./ERC20.sol";
 
 contract Escrow {
 
@@ -200,8 +200,14 @@ contract Escrow {
   function getBlockTime()   internal constant returns  (uint) { return block.timestamp; }
   function roundOpen(bytes24 id) returns (bool)  {return true;}
 
-  // fix this
-  function sqrt(uint a) returns (uint) { return 1; }
+function sqrt(uint x) constant returns (uint y) {
+    uint z = (x + 1) / 2;
+    y = x;
+    while (z < y) {
+        y = z;
+        z = (x / z + z) / 2;
+    }
+}
 
   // consider a minimum voting power fn = sqrt(userToken) / SIGMA_u sqrt(u)
   // could be really useful. would have to be calculate offchain
