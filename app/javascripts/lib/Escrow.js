@@ -18,11 +18,12 @@ exports.init = async (web3Params) => {
 }
 
 // ================ WATCH =============
-escrow.EscrowCreation().watch(function(error, result) {
+/*escrow.EscrowCreation().watch(function(error, result) {
   if (!error) {
     escrowdata.push(result.args);
     console.log("company created: " + result.args.company + " with id " + result.args.id);
-});
+  }});
+*/
 
 // =================
 // Company functions
