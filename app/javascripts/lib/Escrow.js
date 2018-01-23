@@ -1,10 +1,3 @@
-var EscrowFactory = undefined;
-var Escrow = undefined;
-
-var escrow = undefined;
-var escrowFactory = undefined;
-
-var EscrowFactory = undefined;
 var Escrow = undefined;
 
 // =============
@@ -19,7 +12,15 @@ function getDeployedEscrow() {
                  : Escrow.Deployed();
 }
 
-// 
+// =================
+// Company functions
+// =================
+  var setRound = async(begin, end) => {
+  // begin timestamp
+}
+  const tx = await escrow.setRoundWindow(roundNum, start, end).send({from: account1})
+}
+
 // return escrow id, 24 bytes
 function createEscrow(numRounds, token, arbitor, company, payoutAddr, minVotes) {
   if (simulated) {
@@ -33,11 +34,27 @@ function createEscrow(numRounds, token, arbitor, company, payoutAddr, minVotes) 
   escrow = await getDeployedEscrow();
   escrow.createEscrow(numRounds, token, arbitor, company, payoutAddr);
 }
+// ==============
+// User functions
+// ==============
+
+// run this during token sale
+var allocVotes = async() => {
+  if (simulated) return;
+  if (escrow == undefined) throw('Escrow undefined');
+
+  const tx = await escrow.allocVotes(); 
+
+  txFailed = false; // todo check if transaction failed
+  if(txFailed) 
+    throw('Escrow undefined');
+}
 
 //user
 function allocVotes(id) {
   if (simulated && Math.random() < failPercentage) throw('Tx failed!');
   // consider explaining failure. e.g. bad id, user has no tokens, etc
+  
 }
 function userRefund(id) {
     if (simulated && Math.random() < failPercentage) throw('Tx failed!');
@@ -46,6 +63,13 @@ function singleVote(voteYesTrue) {
     if (simulated && Math.random() < failPercentage) throw('Tx failed!');
 }
 
+// vote yes or no
+var singleVote = async(yes) => {
+  if (simulated) return;
+  if (escrow == undefined) throw('Escrow undefined');
+
+  const tx = await escrow.singleVote(yes);
+}
 
 // maybe add
 function getEscrowInfo();
@@ -84,24 +108,8 @@ var constructor = async (numRounds, controller, token) => {
     });
     
     return promise;
-    */
+
   }
-/*
-// ==============
-// User functions
-// ==============
-
-// run this during token sale
-var allocVotes = async() => {
-  if (simulated) return;
-  if (escrow == undefined) throw('Escrow undefined');
-
-  const tx = await escrow.allocVotes(); 
-
-  txFailed = false; // todo check if transaction failed
-  if(txFailed) 
-    throw('Escrow undefined');
-}
 
 // notes
 // * string vs bignumber return
@@ -130,23 +138,7 @@ var getRefund = async() => {
   return promise;
 }
 
-// vote yes or no
-var singleVote = async(yes) => {
-  if (simulated) return;
-  if (escrow == undefined) throw('Escrow undefined');
 
-  const tx = await escrow.singleVote(yes);
-}
-
-
-// =================
-// Company functions
-// =================
-  var setRound = async(begin, end) => {
-  // begin timestamp
-}
-  const tx = await escrow.setRoundWindow(roundNum, start, end).send({from: account1})
-}
 
 // =================
 //       API
