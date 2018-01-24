@@ -16,119 +16,43 @@ contract('Escrow', function (accounts) {
   const account1 = accounts[0];
   const account2 = accounts[1];
   const account3 = accounts[2];
-  const payoutAddress = accounts[3];
-  const arbitrator = accounts[4];
+  const account4 = accounts[3];
+  const payoutAddress = accounts[4];
+  const arbitrator = accounts[5];
 
 //  var escrow;
   var controller = account1;
-  var erc20;
+  var token;
 
   describe('test 1', async () => {
 
     beforeEach(async () => {
-      erc20 = await ERC20.new({from: account1});
+
+      const tokenSupply = new BigNumber(1000);
+      const tokenName = 'Test token'
+      const tokenSymbol = 'test'
+      const tokenDecimals = new BigNumber(18);
+
+      token = await ERC20.new(tokenSupply, tokenName, tokenDecimals, tokenSymbol, {from: account1});
       await EscrowInterface.init({from: account1});
-      // escrow = await Escrow.new({from: account1});
-/* no interface
-      var numRounds  = new BigNumber(3);
-      //todo fix this
-      var tx = await escrowFactory.createEscrow(numRounds, controller, minimetoken.address, {from: account1});
-*/
+
+      // var numRounds  = new BigNumber(3);
+      // var tx = await escrowFactory.createEscrow(numRounds, controller, minimetoken.address, {from: account1});
     });
 
     it('1', async () => {
       const numRounds = new BigNumber(3);
       const minVotes = new BigNumber(30);
 
-      await EscrowInterface.createEscrow(numRounds, arbitrator, erc20.address, payoutAddress, minVotes, {from: account1});
+      await EscrowInterface.createEscrow(numRounds, arbitrator, token.address, payoutAddress, minVotes, {from: account1});
+      const id = 0;
+      await token.transfer(account2, 5);
+      await token.transfer(account3, 8);
+      await token.transfer(account4, 12);
+      EscrowInterface.allocVotes(0, {from: account2});
+      EscrowInterface.allocVotes(0, {from: account3});
+      
     });
-
-/*
-    it('notifies us an escrow was created', async (done) => {
-      const numRounds  = new BigNumber(3);
-      const controller = account3;
-
-      // -----------------------------------------
-      console.log('----------------------------');
-      console.log(escrowFactory['events']);
-      console.log('----------------------------');
-      var event = escrowFactory.events.EscrowCreation({ filter: {controller: controller}});
-
-      var listener = function(result) {
-        assert.equal(result.returnValues.first, expectedValue);
-        done();
-      }
-
-      event.once('data', listener);
-      event.once('error', (err) => done(err));
-
-      const tx = await escrowFactory.createEscrow(numRounds, controller, minimetoken.address)
-            .send({from: account1})
-            .catch(e => { cleanup(e); });
-      // -----------------------------------------
-    });
-*/
 
   });
 });
-
-
-
-
-
-
-/*
-      // print obj
-
-      var pAll = function(obj, _p) {
-        if (obj != undefined && _p != undefined) 
-          console.log('obj ' + obj + ' - prop ' + _p + ' -thing ' + obj[_p]);
-        else           console.log('obj ' + obj);
-        for (var p in obj) pAll(obj[p], p)
-      }
-
-      pAll(tx, undefined);
-
-      //const event = events.EscrowCreation(tx);
-
-      console.log('info: ' + event);
-
-      const e = event[0];     // address
-      console.log('Addr: ' + e);
-      assert.equal(escrow, '0x0');
-
-      const controller = event[1]; // address
-      assert.equal(controller, account2);
-
-      const token = event[2];      // address
-      assert.equal(token, minimetoken.address);
-      */
-
-/*
-myContract.once('MyEvent', {
-    filter: {myIndexedParam: [20,23], myOtherIndexedParam: '0x123456789...'}, // Using an array means OR: e.g. 20 or 23
-    fromBlock: 0
-}, function(error, event){ console.log(event); });
-
-
-// event output example
-> {
-    returnValues: {
-        myIndexedParam: 20,
-        myOtherIndexedParam: '0x123456789...',
-        myNonIndexParam: 'My String'
-    },
-    raw: {
-        data: '0x7f9fade1c0d57a7af66ab4ead79fade1c0d57a7af66ab4ead7c2c2eb7b11a91385',
-        topics: ['0xfd43ade1c09fade1c0d57a7af66ab4ead7c2c2eb7b11a91ffdd57a7af66ab4ead7', '0x7f9fade1c0d57a7af66ab4ead79fade1c0d57a7af66ab4ead7c2c2eb7b11a91385']
-    },
-    event: 'MyEvent',
-    signature: '0xfd43ade1c09fade1c0d57a7af66ab4ead7c2c2eb7b11a91ffdd57a7af66ab4ead7',
-    logIndex: 0,
-    transactionIndex: 0,
-    transactionHash: '0x7f9fade1c0d57a7af66ab4ead79fade1c0d57a7af66ab4ead7c2c2eb7b11a91385',
-    blockHash: '0xfd43ade1c09fade1c0d57a7af66ab4ead7c2c2eb7b11a91ffdd57a7af66ab4ead7',
-    blockNumber: 1234,
-    address: '0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe'
-}
-*/

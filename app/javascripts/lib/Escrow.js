@@ -10,19 +10,21 @@ var escrowdata = [];
 // =============
 // Init function
 // =============
-exports.init = async (web3Params) => {
+var init = async (web3Params) => {
   if (testrpc)
     escrow = await MockEscrow.new(web3Params);
   else
     escrow = await Escrow.Deployed();
 }
 
+/*
 // ================ WATCH =============
 /*escrow.EscrowCreation().watch(function(error, result) {
   if (!error) {
     escrowdata.push(result.args);
     console.log("company created: " + result.args.company + " with id " + result.args.id);
-  }});
+  };
+});
 */
 
 // =================
@@ -49,23 +51,17 @@ var createEscrow = async (numRounds, arbitrator, token, payoutAddr, minVotes, we
 // ==============
 
 // run this during token sale
-var allocVotes = async() => {
+var allocVotes = async(id, web3Params) => {
   if (simulated) return;
   if (escrow == undefined) throw('Escrow undefined');
 
-  const tx = await escrow.allocVotes(); 
+  const tx = await escrow.allocVotes(id, web3Params); 
 
-  txFailed = false; // todo check if transaction failed
+  const txFailed = false; // todo check if transaction failed
   if(txFailed) 
     throw('Escrow undefined');
 }
 
-//user
-function allocVotes(id) {
-  if (simulated && Math.random() < failPercentage) throw('Tx failed!');
-  // consider explaining failure. e.g. bad id, user has no tokens, etc
-  
-}
 function userRefund(id) {
     if (simulated && Math.random() < failPercentage) throw('Tx failed!');
 }
@@ -73,53 +69,9 @@ function singleVote(voteYesTrue) {
     if (simulated && Math.random() < failPercentage) throw('Tx failed!');
 }
 
-// vote yes or no
-var singleVote = async(yes) => {
-  if (simulated) return;
-  if (escrow == undefined) throw('Escrow undefined');
-
-  const tx = await escrow.singleVote(yes);
-}
-
-// maybe add
-//function getEscrowInfo();
 /*
 
-var constructor = async (numRounds, controller, token) => {
-  
-    let promise = new Promise(async (resolve, reject) => {
-      if (simulated) resolve();
-      
-      // use mock if testrpc
-      // check code safety here. dont want user to accidently deploy factory
-      if (testrpc) {
-        EscrowFactory = artifacts.require('MockEscrowFactory.sol');
-        Escrow = artifacts.require('MockEscrow.sol');
-        escrowFactory = EscrowFactory.new({from: account1});
-      } else {
-        EscrowFactory = artifacts.require('EscrowFactory.sol');
-        Escrow = artifacts.require('Escrow.sol');
-        escrowFactory = EscrowFactory.deployed();
-      }
-      
-      var event = escrowFactory.events.EscrowCreation({filter: {controller: account1}});
-      
-      var listener = async(result) => {
-        escrow = await Escrow.at(result.escrow);
-        resolve();
-      }
-      
-      event.once('data', listener);
-      event.once('error', e => reject(e));
-      
-      const tx = await escrowFactory.createEscrow(numRounds, controller, token)
-            .send({from: account1})
-            .catch(e => reject(e));
-    });
-    
-    return promise;
-
-  }
+// vote yes or no
 
 // notes
 // * string vs bignumber return
@@ -148,7 +100,7 @@ var getRefund = async() => {
   return promise;
 }
 
-
+// */
 
 // =================
 //       API
@@ -158,14 +110,16 @@ var getRefund = async() => {
 exports.init = init;
 
 // User
-exports.getRefund = getRefund;
-exports allocVotes = allocVotes;
+exports.allocVotes = allocVotes;
+//exports.getRefund = getRefund;
+//exports allocVotes = allocVotes;
 
 // Company
-exports.singleVote = singleVote;
-exports.setRoundWindow = setRoundWindow;
+exports.createEscrow = createEscrow;
+//exports.singleVote = singleVote;
+//exports.setRoundWindow = setRoundWindow;
 
 
-// */
 
-//module.export.EscrowCon;
+
+// module.export.EscrowCon;
