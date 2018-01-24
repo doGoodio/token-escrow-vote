@@ -43,15 +43,26 @@ contract('Escrow', function (accounts) {
     it('1', async () => {
       const numRounds = new BigNumber(3);
       const minVotes = new BigNumber(30);
+      const allocStartTime = new BigNumber(10);
+      const allocEndTime = new BigNumber(100);
 
-      await EscrowInterface.createEscrow(numRounds, arbitrator, token.address, payoutAddress, minVotes, {from: account1});
-      const id = 0;
-      await token.transfer(account2, 5);
+      const id = 0; //hack
+
+      await EscrowInterface.createEscrow(numRounds, arbitrator, token.address, payoutAddress, minVotes, allocStartTime, allocEndTime, {from: account1});
+      await EscrowInterface.setBlockTime(new BigNumber(50), {from: account1});
+
+      await token.transfer(account2, 1000 * 1000);
       await token.transfer(account3, 8);
       await token.transfer(account4, 12);
+
+
       EscrowInterface.allocVotes(0, {from: account2});
       EscrowInterface.allocVotes(0, {from: account3});
-      
+
+      var d = EscrowInterface.getEscrowData();
+      var vd = await d.call(id).voteWeight(account2);
+      console.log('Vote weight: ' + vd);
+      console.log('Should be: 1000');
     });
 
   });
