@@ -28,6 +28,19 @@ var setBlockTime = async(t, web3Params) => {
   const tx = await escrow.setBlockTime(t, web3Params);
 }
 
+
+// ========
+// Getters:
+// ========
+
+exports.get_voteWeight             = (id, user) => escrow.get_voteWeight(id,user);
+exports.get_round_funds2beReleased = (id, uint) => escrow.get_round_funds2beReleased(id,user);
+exports.get_round_endTime          = (id, roundNum) => escrow.get_round_endTime(id,user);
+exports.get_round_startTime        = (id, roundNum) => escrow.get_round_startTime(id,user);
+exports.get_round_yesVotes         = (id, roundNum) => escrow.get_round_yesVotes(id,user);
+exports.get_round_noVotes          = (id, roundNum) => escrow.get_round_noVotes(id,user);
+exports.get_round_hasVoted         = (id, roundNum, user) => escrow.get_round_hasVoted(id,user);
+
 // =================
 // Company functions
 // =================
@@ -46,16 +59,16 @@ var createEscrow = async (callback_fn, numRounds, arbitrator, token, payoutAddr,
     if (Math.random() < failPercentage) reject('Tx failed!');
     return '0xae67984724872020842709842faee8a89a99Ae5d';
   }
-  
+
   const tx = await escrow.createEscrow(numRounds, arbitrator, token, payoutAddr, minVotes, allocStartTime, allocEndTime);
-  console.log('Created escrow: ' + numRounds + ' ' + token + ' ' + arbitrator + ' ' + company + ' ' + payoutAddr);    
+  console.log('Created escrow: rounds-' + numRounds + '\narb -> ' + arbitrator + '\ntoken -> ' + token + '\npayout -> ' + payoutAddr + '\nminVotes -> ' + minVotes + '\nallocStart -> ' + allocStartTime + '\nallocEnd -> ' + allocEndTime);
 
   escrow.EscrowCreation().watch(function(error, result) {
-  if (!error) {
+    if (error) throw('Escrow ID not found!');
+
     callback_fn(result.args.id);
-    console.log("company created: " + result.args.company + " with id " + result.args.id);
-  };
-});
+    console.log("Escrow ID -> " + result.args.id);
+  });
 }
 
 // ==============
