@@ -57,6 +57,19 @@ contract Escrow {
 
   function Escrow() { }
 
+  // ========
+  // GETTERS:
+  // ========
+
+  // is there an easier way?
+  function get_voteWeight(bytes32 id, address user) public constant returns (uint) { return escrows[id].voteWeight[user]; }
+  function get_round_funds2beReleased(bytes32 id, uint roundNum) public constant returns (uint) { return escrows[id].round[roundNum].funds2beReleased; }
+  function get_round_endTime(bytes32 id, uint roundNum) public constant returns (uint) { return escrows[id].round[roundNum].endTime; }
+  function get_round_startTime(bytes32 id, uint roundNum) public constant returns (uint) { return escrows[id].round[roundNum].startTime; }
+  function get_round_yesVotes(bytes32 id, uint roundNum) public constant returns (uint) { return escrows[id].round[roundNum].yesVotes; }
+  function get_round_noVotes(bytes32 id, uint roundNum) public constant returns (uint) { return escrows[id].round[roundNum].noVotes; }
+  function get_round_hasVoted(bytes32 id, uint roundNum, address user) public constant returns (bool) { return escrows[id].round[roundNum].hasVoted[user]; }
+
   // =====================
   // ARBITRATOR & COMPANY:
   // =====================
@@ -143,10 +156,10 @@ contract Escrow {
   // note. consider where tokens go. if tokens go to company, then they can cheat system. if tokens go to this contract, then they are stuck here unless we send them back to company
 
   function allocVotes(bytes32 id) public inAllocVoteTimeFrame(id) {
-    var userVoteWeight = escrows[id].voteWeight[msg.sender];
+    // var userVoteWeight = escrows[id].voteWeight[msg.sender];
     uint tokenNum = escrows[id].tokenContract.balanceOf(msg.sender);
     
-    userVoteWeight = sqrt(tokenNum); 
+    escrows[id].voteWeight[msg.sender] = sqrt(tokenNum); 
   }
 
 
