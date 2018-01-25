@@ -197,7 +197,6 @@ contract Escrow {
     escrowRound.hasVoted[msg.sender] = true;
   }
   
-
   // =====
   // MISC:
   // =====
