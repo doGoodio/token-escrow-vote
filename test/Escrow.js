@@ -57,8 +57,8 @@ contract('Escrow', function (accounts) {
       await token.transfer(account3, 8, {from: account1});
       await token.transfer(account4, 12, {from: account1});
 
-      await EscrowInterface.allocVotes(0, {from: account2});
-      await EscrowInterface.allocVotes(0, {from: account3});
+      await EscrowInterface.allocVotes(id, {from: account2});
+      await EscrowInterface.allocVotes(id, {from: account3});
 
       var data = await EscrowInterface.getEscrowData()(id);
       const vw = await EscrowInterface.get_voteWeight(id, account2);
