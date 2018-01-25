@@ -17,6 +17,12 @@ var init = async (web3Params) => {
     escrow = await Escrow.Deployed();
 }
 
+
+/*
+// ================ WATCH =============
+/*
+*/
+
 var setBlockTime = async(t, web3Params) => {
   // begin timestamp
   const tx = await escrow.setBlockTime(t, web3Params);
@@ -34,7 +40,7 @@ var setRound = async(begin, end) => {
 var getEscrowData = () => escrow.escrows
 
 // return escrow id, 24 bytes
-var createEscrow = async (numRounds, arbitrator, token, payoutAddr, minVotes, allocStartTime, allocEndTime, web3Params) => {
+var createEscrow = async (callback_fn, numRounds, arbitrator, token, payoutAddr, minVotes, allocStartTime, allocEndTime, web3Params) => {
   const company = web3Params['from'];
   if (simulated) {
     if (Math.random() < failPercentage) reject('Tx failed!');
@@ -43,6 +49,13 @@ var createEscrow = async (numRounds, arbitrator, token, payoutAddr, minVotes, al
   
   const tx = await escrow.createEscrow(numRounds, arbitrator, token, payoutAddr, minVotes, allocStartTime, allocEndTime);
   console.log('Created escrow: ' + numRounds + ' ' + token + ' ' + arbitrator + ' ' + company + ' ' + payoutAddr);    
+
+  escrow.EscrowCreation().watch(function(error, result) {
+  if (!error) {
+    callback_fn(result.args.id);
+    console.log("company created: " + result.args.company + " with id " + result.args.id);
+  };
+});
 }
 
 // ==============

@@ -49,11 +49,11 @@ contract Escrow {
     mapping (uint => RoundData) round;
   }
 
-  mapping (bytes24 => EscrowData) public escrows;   // id -> escrow
+  mapping (bytes32 => EscrowData) public escrows;   // id -> escrow
 
   event VotingResult(bool indexed releasedFunds);
   event RefundAmount(address indexed user, uint refundAmount);
-  event EscrowCreation(address indexed company, bytes24 id);
+  event EscrowCreation(address indexed company, bytes32 id);
 
   function Escrow() { }
 
@@ -65,7 +65,7 @@ contract Escrow {
   // ARBITRATOR:
   // ===========
 
-  function aribtratorApprove(bytes24 id) isArbitrator(id) public { 
+  function aribtratorApprove(bytes32 id) isArbitrator(id) public { 
     escrows[id].arbitratorApproved = true; 
   }
 
@@ -75,7 +75,7 @@ contract Escrow {
 
   function createEscrow(uint numRounds, address arbitrator, address token, address payoutAddress, uint minVotes, uint allocStartTime, uint allocEndTime) {
     address company = msg.sender;
-    bytes24 id = 0; // sha3(company, arbitrator, token, payoutAddress);
+    bytes32 id = sha3(company, arbitrator, token, payoutAddress);
 
     escrows[id].company = company;
     escrows[id].arbitrator = arbitrator;
@@ -90,7 +90,7 @@ contract Escrow {
   }
 
   // consider privledges. arbitrator?
-  function startVoteRound(bytes24 id) public {
+  function startVoteRound(bytes32 id) public {
     require(msg.sender == escrows[id].arbitrator
          || msg.sender == escrows[id].company); 
 
@@ -104,7 +104,7 @@ contract Escrow {
   }
 
   // big thing here, make sure this fn is safe if roundNum changes, or don't let roundNum change
-  function thresholdReached(bytes24 id) public constant returns (bool) {
+  function thresholdReached(bytes32 id) public constant returns (bool) {
     uint roundNum = escrows[id].roundNum;
     uint yesVotes = escrows[id].round[roundNum].yesVotes;
     uint noVotes = escrows[id].round[roundNum].noVotes;
@@ -123,11 +123,11 @@ contract Escrow {
   }
 
   // releases funds to company
-  function releaseFunds(bytes24 id) internal {
+  function releaseFunds(bytes32 id) internal {
     require(escrows[id].payoutAddress.send(escrows[id].round[escrows[id].roundNum].funds2beReleased));
   }
 
-  function setRoundWindow(bytes24 id, uint roundNum, uint start, uint end) isCompany(id) public  {
+  function setRoundWindow(bytes32 id, uint roundNum, uint start, uint end) isCompany(id) public  {
     require(start < end);
     var round = escrows[id].round[roundNum];
 
@@ -142,7 +142,7 @@ contract Escrow {
   // =====  
   // note. consider where tokens go. if tokens go to company, then they can cheat system. if tokens go to this contract, then they are stuck here unless we send them back to company
 
-  function allocVotes(bytes24 id) public inAllocVoteTimeFrame(id) {
+  function allocVotes(bytes32 id) public inAllocVoteTimeFrame(id) {
     var userVoteWeight = escrows[id].voteWeight[msg.sender];
     uint tokenNum = escrows[id].tokenContract.balanceOf(msg.sender);
     
@@ -151,7 +151,7 @@ contract Escrow {
 
 
   // Require approval of entire balanceOf?
-  function refund(bytes24 id) public {
+  function refund(bytes32 id) public {
     // add this    require(inRefundState);
     
     // Get tokens, then refund remaining ether
@@ -166,7 +166,7 @@ contract Escrow {
   }
 
   // voting based on balances at certain point in BC? e.g. minime token? consider people not using it
-  function singleVote(bytes24 id, bool votedYes) public {
+  function singleVote(bytes32 id, bool votedYes) public {
     // Error check
     uint roundNum = escrows[id].roundNum;
     var escrowRound = escrows[id].round[roundNum];
@@ -193,7 +193,7 @@ contract Escrow {
   // ... timestamp of the current block in seconds since the epoch
   function getBlockTime()   internal constant returns  (uint) { return now; }
 
-  function roundOpen(bytes24 id) returns (bool)  {return true;}
+  function roundOpen(bytes32 id) returns (bool)  {return true;}
 
   function sqrt(uint x) constant returns (uint y) {
     uint z = (x + 1) / 2;
@@ -221,17 +221,17 @@ contract Escrow {
     return 1; //return baseExchange * tokenRatio;
   }
 
-  modifier isArbitrator (bytes24 id) { 
+  modifier isArbitrator (bytes32 id) { 
     require(msg.sender == escrows[id].arbitrator); 
     _; 
   }
 
-  modifier isCompany (bytes24 id) { 
+  modifier isCompany (bytes32 id) { 
     require(msg.sender == escrows[id].company); 
     _;
   }
 
-  modifier inAllocVoteTimeFrame(bytes24 id) {
+  modifier inAllocVoteTimeFrame(bytes32 id) {
     uint time = getBlockTime();
     require(time > escrows[id].allocStartTime);
     require(time < escrows[id].allocEndTime);

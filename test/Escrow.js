@@ -8,6 +8,8 @@ var ERC20 = artifacts.require('ERC20.sol');
 var chai = require('chai')
 const assert = require("chai").use(require("chai-as-promised")).assert;
 const BigNumber = web3.BigNumber;
+var escrowId = 0;
+function setId(_id) {escrowId = _id; }
 
 //************************************************
 // Tests
@@ -48,21 +50,24 @@ contract('Escrow', function (accounts) {
 
       const id = 0; //hack
 
-      await EscrowInterface.createEscrow(numRounds, arbitrator, token.address, payoutAddress, minVotes, allocStartTime, allocEndTime, {from: account1});
+      await EscrowInterface.createEscrow(setId, numRounds, arbitrator, token.address, payoutAddress, minVotes, allocStartTime, allocEndTime, {from: account1});
       await EscrowInterface.setBlockTime(new BigNumber(50), {from: account1});
 
-      await token.transfer(account2, 1000 * 1000);
-      await token.transfer(account3, 8);
-      await token.transfer(account4, 12);
-
       // need to consider decimals for voting. e.g. 10**18 tokens -> 10**9 votesAllocated.. how many vote decimals are there?
+      await token.transfer(account2, 10 * 10, {from: account1});
+      await token.transfer(account3, 8, {from: account1});
+      await token.transfer(account4, 12, {from: account1});
+
       EscrowInterface.allocVotes(0, {from: account2});
       EscrowInterface.allocVotes(0, {from: account3});
 
+      id = escrowId;
+      console.log('THE ID IS: ' + escrowId);
       var d = EscrowInterface.getEscrowData();
-      var vd = await d.call(id).voteWeight(account2);
-      console.log('Vote weight: ' + vd);
-      console.log('Should be: 1000');
+      //var vd = await d.call(id).voteWeight(account2);
+      //console.log('Vote weight: ' + vd);
+      console.log('Should be: 10');
+
     });
 
   });
