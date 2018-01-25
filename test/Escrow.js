@@ -55,7 +55,7 @@ contract('Escrow', function (accounts) {
       await token.transfer(account3, 8);
       await token.transfer(account4, 12);
 
-
+      // need to consider decimals for voting. e.g. 10**18 tokens -> 10**9 votesAllocated.. how many vote decimals are there?
       EscrowInterface.allocVotes(0, {from: account2});
       EscrowInterface.allocVotes(0, {from: account3});
 
