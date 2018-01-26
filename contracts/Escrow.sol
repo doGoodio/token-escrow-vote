@@ -5,9 +5,11 @@ pragma solidity ^0.4.15;
       a. tokens passed and b. no vote and c. company agrees.
  */
 
-// 
-    // allow revoting?
-  // should we include self destruct after usefulness of escrow has expired?
+// safe math? def need it in places
+// allow revoting?
+// should we include self destruct after usefulness of escrow has expired?
+// what to do w/ leftover ether
+// arbitrator laws
 
 import "./ERC20.sol";
 
@@ -39,12 +41,17 @@ contract Escrow {
     uint numRounds;
     uint baseExchange;
     bool arbitratorApproved;
+    bool failed;
+    uint totalRefund;
+    uint totalFunding;
+    uint totalTokenCount;
+    uint totalVotePower;
 
-    uint thresholdApprovalNumer;
-    uint thresholdApprovalDenom;
     // Fraction ; // this gave an error "UnimplementedFeatureError"
-    uint minVotes;
-    mapping (address => uint) voteWeight;   // user -> vote-weight
+    uint abstainNumer; // abstain voting power
+    uint abstainDenom; // abstain voting power
+
+    mapping (address => uint) initalTokenCount;   // user -> vote-weight
 
     mapping (uint => RoundData) round;
   }
@@ -62,13 +69,16 @@ contract Escrow {
   // ========
 
   // is there an easier way?
-  function get_voteWeight(bytes32 id, address user) public constant returns (uint) { return escrows[id].voteWeight[user]; }
-  function get_round_funds2beReleased(bytes32 id, uint roundNum) public constant returns (uint) { return escrows[id].round[roundNum].funds2beReleased; }
-  function get_round_endTime(bytes32 id, uint roundNum) public constant returns (uint) { return escrows[id].round[roundNum].endTime; }
-  function get_round_startTime(bytes32 id, uint roundNum) public constant returns (uint) { return escrows[id].round[roundNum].startTime; }
-  function get_round_yesVotes(bytes32 id, uint roundNum) public constant returns (uint) { return escrows[id].round[roundNum].yesVotes; }
-  function get_round_noVotes(bytes32 id, uint roundNum) public constant returns (uint) { return escrows[id].round[roundNum].noVotes; }
-  function get_round_hasVoted(bytes32 id, uint roundNum, address user) public constant returns (bool) { return escrows[id].round[roundNum].hasVoted[user]; }
+  function get_initialTokenCount(bytes32 id, address user) external constant returns (uint) { return escrows[id].initialTokenCount[user]; }
+  function get_round_funds2beReleased(bytes32 id, uint roundNum) external constant returns (uint) { return escrows[id].round[roundNum].funds2beReleased; }
+  function get_round_endTime(bytes32 id, uint roundNum) external constant returns (uint) { return escrows[id].round[roundNum].endTime; }
+  function get_round_startTime(bytes32 id, uint roundNum) external constant returns (uint) { return escrows[id].round[roundNum].startTime; }
+  function get_round_yesVotes(bytes32 id, uint roundNum) external constant returns (uint) { return escrows[id].round[roundNum].yesVotes; }
+  function get_round_noVotes(bytes32 id, uint roundNum) external constant returns (uint) { return escrows[id].round[roundNum].noVotes; }
+  function get_round_hasVoted(bytes32 id, uint roundNum, address user) external constant returns (bool) { return escrows[id].round[roundNum].hasVoted[user]; }
+
+  // User calls to know the minimum voting power they have
+  function getminVotingPower(bytes32 id, address user) external constant returns (uint num, uint denom) { return (sqrt(escrows[id].initialTokenCount[user]), escrows[id].totalVotePower); }
 
   // =====================
   // ARBITRATOR & COMPANY:
@@ -86,7 +96,7 @@ contract Escrow {
   // COMPANY:
   // ========
 
-  function createEscrow(uint numRounds, address arbitrator, address token, address payoutAddress, uint minVotes, uint allocStartTime, uint allocEndTime) {
+  function createEscrow(uint numRounds, address arbitrator, address token, address payoutAddress, uint allocStartTime, uint allocEndTime, uint abstainNumer, uint abstainDenom) {
     address company = msg.sender;
     bytes32 id = sha3(company, arbitrator, token, payoutAddress);
 
@@ -98,57 +108,62 @@ contract Escrow {
     escrows[id].minVotes = minVotes;
     escrows[id].allocStartTime = allocStartTime;
     escrows[id].allocEndTime = allocEndTime;
+    escrows[id].abstainNumer = abstainNumer;
+    escrows[id].abstainDenom = abstainDenom;
 
     EscrowCreation(company, id);
-  }
-
-  // consider privledges. arbitrator?
-  function startVoteRound(bytes32 id) public {
-    require(msg.sender == escrows[id].arbitrator
-         || msg.sender == escrows[id].company); 
-
-    uint startTime = escrows[id].round[roundNum + 1].startTime;
-    uint endTime = escrows[id].round[roundNum + 1].endTime;
-    uint roundNum = escrows[id].roundNum;
-
-    // make sure in voting window
-    require(getBlockTime() >= startTime && getBlockTime() <= endTime); 
-    escrows[id].roundNum = escrows[id].roundNum + 1;
   }
 
   // big thing here, make sure this fn is safe if roundNum changes, or don't let roundNum change
   function thresholdReached(bytes32 id) public constant returns (bool) {
     uint roundNum = escrows[id].roundNum;
-    uint yesVotes = escrows[id].round[roundNum].yesVotes;
-    uint noVotes = escrows[id].round[roundNum].noVotes;
-    uint totalVotes = yesVotes + noVotes;
-    uint denom = escrows[id].thresholdApprovalDenom;
-    uint numer = escrows[id].thresholdApprovalNumer;
+    uint yes      = escrows[id].round[roundNum].yesVotes;
+    uint no       = escrows[id].round[roundNum].noVotes;
+    uint abstain  = (totalVotePower - yes - no) * escrows[id].abstainNumer / escrows[id].abstainDenom;
 
-    // this should be related to noVotes too. Or, what if voting is only 10% turnout? this is valid, but might be rejected b/c didn't reach threshold
-    return totalVotes > escrows[id].minVotes
-        && (yesVotes * denom) > numer;
+    return yes - no - abstain;
   }
 
   // keep track of failures
-  function failRound() public {
-    // failures[roundNum]++;
+  // security note, _all_ round time windows should be set before escrow starts
+  function failEscrow(bytes32 id) public {
+    var roundData =  escrows[id].round[escrows[id].roundNum];
+    
+    require(getBlockTime() > roundData.endTime);
+    require(thresholdReached(id) == false);
+
+    escrows[id].failed = true;
+    escrows[id].totalRefund = escrows[id].totalFunding;
   }
 
   // releases funds to company
-  function releaseFunds(bytes32 id) internal {
-    require(escrows[id].payoutAddress.send(escrows[id].round[escrows[id].roundNum].funds2beReleased));
+  function releaseFunds(bytes32 id) public {
+    uint funding = escrows[id].round[escrows[id].roundNum].funds2beReleased;
+    require(thresholdReached(id));
+
+    // State changes
+    require(escrows[id].payoutAddress.send());
+    escrows[id].totalRefund = escrows[id].totalRefund - funding;
+    escrows[id].roundNum = escrows[id].roundNum + 1;
   }
 
+  function payEscrow(bytes32 id) payable public {
+    // end of payment at start of round 1, or only in token/vote alloc window?
+    require(getBlockTime() < escrows[id].round[0].startTime);
+    escrows[id].totalFunding = escrows[id].totalFunding + msg.value;
+  }
+
+  // -----------------
+  // Escrow parameters
+  // -----------------
   function setRoundWindow(bytes32 id, uint roundNum, uint start, uint end) isCompany(id) public  {
     require(start < end);
-    var round = escrows[id].round[roundNum];
+    require(start > escrows[id].allocEndTime);
 
-    round.startTime = start;
-    round.endTime = end;
+    escrows[id].round[roundNum].startTime = start;
+    escrows[id].round[roundNum].endTime   = end;
   }
 
-  // todo. make fallback fail
 
   // =====
   // USER:
@@ -156,26 +171,25 @@ contract Escrow {
   // note. consider where tokens go. if tokens go to company, then they can cheat system. if tokens go to this contract, then they are stuck here unless we send them back to company
 
   function allocVotes(bytes32 id) public inAllocVoteTimeFrame(id) {
-    // var userVoteWeight = escrows[id].voteWeight[msg.sender];
-    uint tokenNum = escrows[id].tokenContract.balanceOf(msg.sender);
-    
-    escrows[id].voteWeight[msg.sender] = sqrt(tokenNum); 
-  }
+    var userTokenCount  = escrows[id].initialTokenCount[msg.sender];
+    var totalTokenCount = escrows[id].tokenContract.balanceOf(msg.sender);
+    var totalVotePower  = escrows[id].totalVotePower
 
+    // State changes
+    userTokenCount = escrows[id].tokenContract.balanceOf(msg.sender);
+    totalTokenCount = totalTokenCount + userTokenCount;
+    totalVotePower = totalVotePower + sqrt(userTokenCount);
+  }
 
   // Require approval of entire balanceOf?
   function refund(bytes32 id) public {
-    // add this    require(inRefundState);
-    
-    // Get tokens, then refund remaining ether
+    var totalRefund = escrows[id].totalRefund;
+    var userTokenCount = escrows[id].initialTokenCount[msg.sender];
+    var totalTokenCount = escrows[id].totalTokenCount;
+    uint refundSize = totalRefund * userTokenCount / totalTokenCount;  // rounding error. overflow error
 
-    // uint tokenCount = escrows[id].tokenContract.balanceOf(msg.sender);
-    // uint refundAmount = tokenCount * getExchangeRate();
-    // uint refundAmount = tokenCount * currentExchangeRate;  // Num and denom style is probably better. Probably need be careful in what gets divided and multiplied first.. e.g. (1/4)*8 vs (1*8)/4
-    // require(tokenContract.transferFrom(msg.sender, this, tokenCount));  // make sure params are right
-    // msg.sender.send(refundAmount);
-    // RefundAmount(msg.sender, refundAmount);
-
+    require(escrows[id].failed);
+    require(msg.sender.send(refundSize));
   }
 
   // voting based on balances at certain point in BC? e.g. minime token? consider people not using it
@@ -183,16 +197,17 @@ contract Escrow {
     // Error check
     uint roundNum = escrows[id].roundNum;
     var escrowRound = escrows[id].round[roundNum];
+    uint userVotePower = sqrt(escrows[id].initialTokenCount[msg.sender]);
 
     require(escrowRound.hasVoted[msg.sender] == false);
     require(getBlockTime() >= escrowRound.startTime && getBlockTime() <= escrowRound.endTime); // make sure in voting window
 
     // State changes
-    if (votedYes) { // safe math? 
-      escrowRound.yesVotes = escrowRound.yesVotes + escrows[id].voteWeight[msg.sender];
+    if (votedYes) {
+      escrowRound.yesVotes = escrowRound.yesVotes + userVotePower;
     }
     else {
-      escrowRound.noVotes = escrowRound.noVotes + escrows[id].voteWeight[msg.sender];
+      escrowRound.noVotes = escrowRound.noVotes + userVotePower;
     }
     escrowRound.hasVoted[msg.sender] = true;
   }
@@ -214,13 +229,6 @@ contract Escrow {
         y = z;
         z = (x / z + z) / 2;
     }
-  }
-  
-  // consider a minimum voting power fn = sqrt(userToken) / SIGMA_u sqrt(u)
-  // could be really useful. would have to be calculate offchain
-  function minVotingPower(address user) public constant returns (string) {
-    // return alloc[user] / maxVoteCount;
-    return "1.421%";
   }
 
   function getExchangeRate() returns (uint){

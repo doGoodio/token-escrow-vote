@@ -33,13 +33,14 @@ var setBlockTime = async(t, web3Params) => {
 // Getters:
 // ========
 
-exports.get_voteWeight             = (id, user) => escrow.get_voteWeight(id,user);
+exports.get_initialTokenCount      = (id, user) => escrow.get_initialTokenCount(id,user);
 exports.get_round_funds2beReleased = (id, uint) => escrow.get_round_funds2beReleased(id,user);
 exports.get_round_endTime          = (id, roundNum) => escrow.get_round_endTime(id,user);
 exports.get_round_startTime        = (id, roundNum) => escrow.get_round_startTime(id,user);
 exports.get_round_yesVotes         = (id, roundNum) => escrow.get_round_yesVotes(id,user);
 exports.get_round_noVotes          = (id, roundNum) => escrow.get_round_noVotes(id,user);
 exports.get_round_hasVoted         = (id, roundNum, user) => escrow.get_round_hasVoted(id,user);
+exports.getminVotingPower          = (id, user)     => escrow.getminVotingPower(id, user);
 
 // =================
 // Company functions
@@ -50,10 +51,10 @@ var setRound = async(begin, end) => {
   const tx = await escrow.setRoundWindow(roundNum, start, end).send({from: account1})
 }
 
-var getEscrowData = () => escrow.escrows
+var getEscrowData = () => escrow.escrows;
 
 // return escrow id, 24 bytes
-var createEscrow = async (callback_fn, numRounds, arbitrator, token, payoutAddr, minVotes, allocStartTime, allocEndTime, web3Params) => {
+var createEscrow = async (callback_fn, numRounds, arbitrator, token, payoutAddr, allocStartTime, allocEndTime, abstainNumer, abstainDenom, web3Params) => {
   const company = web3Params['from'];
   if (simulated) {
     if (Math.random() < failPercentage) reject('Tx failed!');
@@ -63,11 +64,13 @@ var createEscrow = async (callback_fn, numRounds, arbitrator, token, payoutAddr,
   const tx = await escrow.createEscrow(numRounds, arbitrator, token, payoutAddr, minVotes, allocStartTime, allocEndTime);
   console.log('Created escrow: rounds-' + numRounds + '\narb -> ' + arbitrator + '\ntoken -> ' + token + '\npayout -> ' + payoutAddr + '\nminVotes -> ' + minVotes + '\nallocStart -> ' + allocStartTime + '\nallocEnd -> ' + allocEndTime);
 
+  const tmp = escrow.EscrowCreation();
   escrow.EscrowCreation().watch(function(error, result) {
     if (error) throw('Escrow ID not found!');
 
     callback_fn(result.args.id);
     console.log("Escrow ID -> " + result.args.id);
+    tmp.stopWatching();
   });
 }
 

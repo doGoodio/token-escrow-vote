@@ -71,7 +71,8 @@ contract('Escrow', function (accounts) {
 
   describe('escrow scenario tests', async () => {
     const numRounds = new BigNumber(3);
-    const minVotes = new BigNumber(30);
+    const abstainNum = new BigNumber(1);
+    const abstainDenom = new BigNumber(6);
     const allocStartTime = new BigNumber(10);
     const allocEndTime = new BigNumber(100);
     var id;
@@ -86,21 +87,18 @@ contract('Escrow', function (accounts) {
 
       token = await ERC20.new(tokenSupply, tokenName, tokenDecimals, tokenSymbol, {from: account1});
       await EscrowInterface.init({from: account1});
-      await EscrowInterface.createEscrow(setId, numRounds, arbitrator, token.address, payoutAddress, minVotes, allocStartTime, allocEndTime, {from: account1});
+      await EscrowInterface.createEscrow(setId, numRounds, arbitrator, token.address, payoutAddress, allocStartTime, allocEndTime, abstainNum, abstainDenom, {from: account1});
     });
 
 
     // need to consider decimals for voting. e.g. 10**18 tokens -> 10**9 votesAllocated.. how many vote decimals are there?
-    it('allocates voting', async () => {
+    it('allocates voting in time window', async () => {
       // vars
       const bal2 = new BigNumber(84729832);
       const bal3 = new BigNumber(238913);
       const bal4 = new BigNumber(98284982);
       var b2,b3,b4;
 
-      // set block time
-      await EscrowInterface.setBlockTime(new BigNumber(50), {from: account1});
-      
       // Alloc token balances and double check
       await token.transfer(account2, bal2, {from: account1});
       await token.transfer(account3, bal3, {from: account1});
@@ -112,35 +110,57 @@ contract('Escrow', function (accounts) {
       assert.equal(bal3.toNumber(), b3.toNumber());
       assert.equal(bal3.toNumber(), b4.toNumber());
 
-
-      // alloc votes and get vote weight
+      // Test: before window
+      await EscrowInterface.setBlockTime(new BigNumber(0), {from: account1});
       await EscrowInterface.allocVotes(id, {from: account2});
-      await EscrowInterface.allocVotes(id, {from: account3});
-      await EscrowInterface.allocVotes(id, {from: account4});
       const vw2 = await EscrowInterface.get_voteWeight(id, account2);
+      assert.equal(vw2.toNumber(), (new BigNumber(0)).toNumber());
+
+      // Test: in window
+      await EscrowInterface.setBlockTime(new BigNumber(50), {from: account1});
+      await EscrowInterface.allocVotes(id, {from: account3});
       const vw3 = await EscrowInterface.get_voteWeight(id, account3);
-      const vw4 = await EscrowInterface.get_voteWeight(id, account4);
-      
-      // tests
-      assert.equal(vw2.toNumber(), bal2.sqrt().floor().toNumber());
       assert.equal(vw3.toNumber(), bal3.sqrt().floor().toNumber());
-      assert.equal(vw4.toNumber(), bal4.sqrt().floor().toNumber());
+
+      // Test: after window
+      await EscrowInterface.setBlockTime(new BigNumber(150), {from: account1});
+      await EscrowInterface.allocVotes(id, {from: account4});
+      const vw4 = await EscrowInterface.get_voteWeight(id, account4);
+      assert.equal(vw4.toNumber(), (new BigNumber(0)).toNumber());
     });
   });
 });
 
 /*
-Votes are allocated voting power for a given project based on
-  the number of tokens they purchased at that company's presale/ICO.	
- -- done - we have token allocation window
 Voters are polled and can vote on a Yes/No escrow release
   voting decision during a given time period.	
  -- x    - there should be a set vote window. a set of time voters are notified before the vote starts
-Votes are counted using quadratic voting.
- -- done -
 A simple majority is required to win the vote.
  -- done - 
 Funds are released and transfered to an Ethereum
   wallet that is designated by the project
  -- done - 
+*/
+
+
+// uint tokenCount = escrows[id].tokenContract.balanceOf(msg.sender);
+// uint refundAmount = tokenCount * getExchangeRate();
+// uint refundAmount = tokenCount * currentExchangeRate;  // Num and denom style is probably better. Probably need be careful in what gets divided and multiplied first.. e.g. (1/4)*8 vs (1*8)/4
+// require(tokenContract.transferFrom(msg.sender, this, tokenCount));  // make sure params are right
+// msg.sender.send(refundAmount);
+// RefundAmount(msg.sender, refundAmount);
+
+/*
+  // consider privledges. arbitrator?
+  function startVoteRound(bytes32 id) public {
+    require(msg.sender == escrows[id].arbitrator
+         || msg.sender == escrows[id].company); 
+
+    uint startTime = escrows[id].round[roundNum + 1].startTime;
+    uint endTime = escrows[id].round[roundNum + 1].endTime;
+    uint roundNum = escrows[id].roundNum;
+
+    // make sure in voting window
+    require(getBlockTime() >= startTime && getBlockTime() <= endTime); 
+  }
 */
