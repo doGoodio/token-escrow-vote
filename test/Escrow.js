@@ -79,7 +79,6 @@ contract('Escrow', function (accounts) {
     var token;
     
     beforeEach(async () => {
-      function setId(_id) { id = _id; }
       const tokenSupply = new BigNumber(1000000000);
       const tokenName = 'Test token'
       const tokenSymbol = 'test'
@@ -87,9 +86,8 @@ contract('Escrow', function (accounts) {
 
       token = await ERC20.new(tokenSupply, tokenName, tokenDecimals, tokenSymbol, {from: account1});
       await EscrowInterface.init({from: account1});
-      await EscrowInterface.createEscrow(setId, arbitrator, token.address, payoutAddress, allocStartTime, allocEndTime, abstainNum, abstainDenom, {from: account1});
+      id = await EscrowInterface.createEscrow(arbitrator, token.address, payoutAddress, allocStartTime, allocEndTime, abstainNum, abstainDenom, {from: account1});
     });
-
 
     // need to consider decimals for voting. e.g. 10**18 tokens -> 10**9 votesAllocated.. how many vote decimals are there?
     it('allocates voting in time window', async () => {
@@ -109,13 +107,13 @@ contract('Escrow', function (accounts) {
       assert.equal(bal2.toNumber(), b2.toNumber());
       assert.equal(bal3.toNumber(), b3.toNumber());
       assert.equal(bal3.toNumber(), b4.toNumber());
-
+      console.log('id!!'+id);
       // Test: before window
       await EscrowInterface.setBlockTime(new BigNumber(0), {from: account1});
       await EscrowInterface.allocVotes(id, {from: account2});
       const vw2 = await EscrowInterface.getUserVotePower(id, account2);
       assert.equal(vw2.toNumber(), (new BigNumber(0)).toNumber());
-/*
+
       // Test: in window
       await EscrowInterface.setBlockTime(new BigNumber(50), {from: account1});
       await EscrowInterface.allocVotes(id, {from: account3});
@@ -127,7 +125,6 @@ contract('Escrow', function (accounts) {
       await EscrowInterface.allocVotes(id, {from: account4});
       const vw4 = await EscrowInterface.getUserVotePower(id, account4);
       assert.equal(vw4.toNumber(), (new BigNumber(0)).toNumber());
-*/
     });
   });
 });

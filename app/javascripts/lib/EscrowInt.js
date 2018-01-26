@@ -87,27 +87,24 @@ var setRound = async(begin, end) => {
 var getEscrowData = () => escrow.escrows;
 
 // return escrow id, 24 bytes
-var createEscrow = async (callback_fn, arbitrator, token, payoutAddr, allocStartTime, allocEndTime, abstainNumer, abstainDenom, web3Params) => {
+var createEscrow = async (arbitrator, token, payoutAddr, allocStartTime, allocEndTime, abstainNumer, abstainDenom, web3Params) => {
   const company = web3Params['from'];
   if (simulated) {
     if (Math.random() < failPercentage) reject('Tx failed!');
     return '0xae67984724872020842709842faee8a89a99Ae5d';
   } else {
+    console.log('Creating escrow:' + '\narb -> ' + arbitrator + '\ntoken -> ' + token + '\npayout -> ' + payoutAddr + '\nallocStart -> ' + allocStartTime + '\nallocEnd -> ' + allocEndTime);
+    const result = await escrow.createEscrow(arbitrator, token, payoutAddr, allocStartTime, allocEndTime, abstainNumer, abstainDenom, web3Params);
 
-  console.log('Creating escrow:' + '\narb -> ' + arbitrator + '\ntoken -> ' + token + '\npayout -> ' + payoutAddr + '\nallocStart -> ' + allocStartTime + '\nallocEnd -> ' + allocEndTime);
-  const result = await escrow.createEscrow(arbitrator, token, payoutAddr, allocStartTime, allocEndTime, abstainNumer, abstainDenom, web3Params);
-
-
-  for (var i = 0; i < result.logs.length; i++) {
-    var log = result.logs[i];
-
-    if (log.event == "EscrowCreation") {
-      // We found the event!
-      console.log("Escrow created with id: " + log.args.id);
-      return log.args.id;
+    for (var i = 0; i < result.logs.length; i++) {
+      var log = result.logs[i];
+      
+      if (log.event == "EscrowCreation") {
+        // We found the event!
+        console.log("Escrow created with id: " + log.args.id);
+        return log.args.id;
+      }
     }
-  }
-
   };
 }
 // ==============
