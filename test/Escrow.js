@@ -1,7 +1,7 @@
 // var events = require('./../app/javascripts/events');
 // var util = require('./../app/javascripts/util');
 
-import * as EscrowInterface from '../app/javascripts/lib/Escrow';
+import * as EscrowInterface from '../app/javascripts/lib/EscrowInt';
 
 var ERC20 = artifacts.require('ERC20.sol');
 
@@ -115,7 +115,7 @@ contract('Escrow', function (accounts) {
       await EscrowInterface.allocVotes(id, {from: account2});
       const vw2 = await EscrowInterface.getUserVotePower(id, account2);
       assert.equal(vw2.toNumber(), (new BigNumber(0)).toNumber());
-
+/*
       // Test: in window
       await EscrowInterface.setBlockTime(new BigNumber(50), {from: account1});
       await EscrowInterface.allocVotes(id, {from: account3});
@@ -127,6 +127,7 @@ contract('Escrow', function (accounts) {
       await EscrowInterface.allocVotes(id, {from: account4});
       const vw4 = await EscrowInterface.getUserVotePower(id, account4);
       assert.equal(vw4.toNumber(), (new BigNumber(0)).toNumber());
+*/
     });
   });
 });

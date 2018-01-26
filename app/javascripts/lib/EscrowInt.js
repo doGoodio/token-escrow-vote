@@ -92,21 +92,24 @@ var createEscrow = async (callback_fn, arbitrator, token, payoutAddr, allocStart
   if (simulated) {
     if (Math.random() < failPercentage) reject('Tx failed!');
     return '0xae67984724872020842709842faee8a89a99Ae5d';
+  } else {
+
+  console.log('Creating escrow:' + '\narb -> ' + arbitrator + '\ntoken -> ' + token + '\npayout -> ' + payoutAddr + '\nallocStart -> ' + allocStartTime + '\nallocEnd -> ' + allocEndTime);
+  const result = await escrow.createEscrow(arbitrator, token, payoutAddr, allocStartTime, allocEndTime, abstainNumer, abstainDenom, web3Params);
+
+
+  for (var i = 0; i < result.logs.length; i++) {
+    var log = result.logs[i];
+
+    if (log.event == "EscrowCreation") {
+      // We found the event!
+      console.log("Escrow created with id: " + log.args.id);
+      return log.args.id;
+    }
   }
 
-  const tx = await escrow.createEscrow(arbitrator, token, payoutAddr, allocStartTime, allocEndTime, abstainNumer, abstainDenom, web3Params);
-  console.log('Created escrow:' + '\narb -> ' + arbitrator + '\ntoken -> ' + token + '\npayout -> ' + payoutAddr + '\nallocStart -> ' + allocStartTime + '\nallocEnd -> ' + allocEndTime);
-
-  const tmp = escrow.EscrowCreation();
-  escrow.EscrowCreation().watch(function(error, result) {
-    if (error) throw('Escrow ID not found!');
-
-    callback_fn(result.args.id);
-    console.log("Escrow ID -> " + result.args.id);
-    tmp.stopWatching();
-  });
+  };
 }
-
 // ==============
 // User functions
 // ==============
@@ -156,54 +159,3 @@ exports.createEscrow = createEscrow;
 // Testing 
 exports.setBlockTime = setBlockTime;
 
-
-
-// module.export.EscrowCon;
-
-
-
-
-
-
-/*
-
-// vote yes or no
-
-// notes
-// * string vs bignumber return
-// * what if oracle fails b/c gas too small? no refund?
-// * set account. default to account1? does metamask provide a hook to change it?
-var getRefund = async() => {
-  let promise = await new Promise((resolve, reject) => {
-    if (simulated) resolve('3.0023427');
-    if (escrow == undefined) reject('Escrow undefined');
-    
-    var event = escrow.events.RefundAmount({filter: {user: account1}});
-    
-    var refundAmount;
-    var listener = function(result) {
-      resolve(result.returnValues.refundAmount.toNumber(10));
-    }
-    
-    event.once('data', listener);
-    event.once('error', e => reject(e));
-    
-    const tx = await escrow.refund()
-          .send({from: account1})
-          .catch(e => reject(e));
-  });
-    
-  return promise;
-}
-
-// */
-
-/*
-// ================ WATCH =============
-escrow.EscrowCreation().watch(function(error, result) {
-  if (!error) {
-    escrowdata.push(result.args);
-    console.log("company created: " + result.args.company + " with id " + result.args.id);
-  };
-});
-*/
