@@ -25,58 +25,12 @@ contract('Escrow', function (accounts) {
   const arbitrator = accounts[9];
 
   describe('escrow init tests', async () => {
-
-    beforeEach(async () => {
-      const tokenSupply = new BigNumber(1000000000);
-      const tokenName = 'Test token'
-      const tokenSymbol = 'test'
-      const tokenDecimals = new BigNumber(18);
-
-      token = await ERC20.new(tokenSupply, tokenName, tokenDecimals, tokenSymbol, {from: account1});
-      await EscrowInterface.init({from: account1});
-    });
-
-    /*
-    it('1', async () => {
-      const numRounds = new BigNumber(3);
-      const minVotes = new BigNumber(30);
-      const allocStartTime = new BigNumber(10);
-      const allocEndTime = new BigNumber(100);
-      var id;
-      function setId(_id) { id = _id; }
-      const testBal = new BigNumber(84729832);
-
-      await EscrowInterface.createEscrow(setId, numRounds, arbitrator, token.address, payoutAddress, minVotes, allocStartTime, allocEndTime, {from: account1});
-      // need blocking, since rely on id
-      await EscrowInterface.setBlockTime(new BigNumber(50), {from: account1});
-
-      // need to consider decimals for voting. e.g. 10**18 tokens -> 10**9 votesAllocated.. how many vote decimals are there?
-      await token.transfer(account2, testBal, {from: account1});
-      await token.transfer(account3, 8, {from: account1});
-      await token.transfer(account4, 12, {from: account1});
-
-      await EscrowInterface.allocVotes(id, {from: account2});
-      await EscrowInterface.allocVotes(id, {from: account3});
-
-      var data = await EscrowInterface.getEscrowData()(id);
-      const vw = await EscrowInterface.get_voteWeight(id, account2);
-      const bal = await token.balanceOf(account2);
-      
-      // log data
-      assert.equal(ownerBalance.toNumber(), aixInExchanger.toNumber());
-
-      console.log('acutal vote weight = ' + vw.toString(10));
-      console.log('expected voted weight = ' + testBal.sqrt().floor().toString(10));
-      console.log('token bal = ' + bal.toString(10));
-      for (var i in data) console.log('Escrow data key ' + i + ' -> ' + data[i]);
-    });
-    */
   });
 
   describe('escrow scenario tests', async () => {
     //const numRounds = new BigNumber(3);
     const abstainNum = new BigNumber(1);
-    const abstainDenom = new BigNumber(6);
+    const abstainDenom = new BigNumber(10);
     const allocStartTime = new BigNumber(10);
     const allocEndTime = new BigNumber(100);
     var id;
@@ -87,7 +41,12 @@ contract('Escrow', function (accounts) {
     const bal4 = new BigNumber(14832);
     const bal5 = new BigNumber(297525);
     const bal6 = new BigNumber(892193113);
-
+    const vp1E = bal1.sqrt().floor();  // 9204
+    const vp2E = bal2.sqrt().floor();  // 1545 
+    const vp3E = bal3.sqrt().floor();  // 9913
+    const vp4E = bal4.sqrt().floor();  // 121
+    const vp5E = bal5.sqrt().floor();  // 545
+    const vp6E = bal6.sqrt().floor();  // 29869
     
     beforeEach(async () => {
       const tokenSupply = new BigNumber(1000000000000);
@@ -118,14 +77,14 @@ contract('Escrow', function (accounts) {
       // Test: before window
       await EscrowInterface.setBlockTime(new BigNumber(0), {from: company});
       await EscrowInterface.allocVotes(id, {from: account1});
-      const vp1 = await EscrowInterface.getUserVotePower(id, account1);
-      assert.equal(vp1.toNumber(), (new BigNumber(0)).toNumber());
+      const vp1A = await EscrowInterface.getUserVotePower(id, account1);
+      assert.equal(vp1A.toNumber(), (new BigNumber(0)).toNumber());
 
       // Test: in window
       await EscrowInterface.setBlockTime(new BigNumber(50), {from: company});
       await EscrowInterface.allocVotes(id, {from: account2});
-      const vp2 = await EscrowInterface.getUserVotePower(id, account2);
-      assert.equal(vp2.toNumber(), bal2.sqrt().floor().toNumber());
+      const vp2A = await EscrowInterface.getUserVotePower(id, account2);
+      assert.equal(vp2A.toNumber(), vp2E.toNumber());
 
       // Test: after window
       await EscrowInterface.setBlockTime(new BigNumber(150), {from: company});
@@ -134,73 +93,50 @@ contract('Escrow', function (accounts) {
       assert.equal(vp3.toNumber(), (new BigNumber(0)).toNumber());
     });
 
-    it('meets threshold', async () => {
+
+    it('does meet threshold', async () => {
       const r1Start = allocEndTime + 10;
       const r1End   = r1Start + 10;
 
       // Alloc votes
       await EscrowInterface.setBlockTime(new BigNumber(50), {from: company});
       await EscrowInterface.allocVotes(id, {from: account1});
-      await EscrowInterface.allocVotes(id, {from: account2});
       await EscrowInterface.allocVotes(id, {from: account3});
-      await EscrowInterface.allocVotes(id, {from: account4});
-      await EscrowInterface.allocVotes(id, {from: account5});
 
       // Set round 1 times
       await EscrowInterface.setRoundWindow(id, 1, r1Start, r1End, {from: company});
 
       // Vote in round 1
       await EscrowInterface.setBlockTime(r1Start + 5, {from: company});
-      await EscrowInterface.singleVote(id, true, {from: account1});
-      await EscrowInterface.singleVote(id, true, {from: account2});
-      await EscrowInterface.singleVote(id, true, {from: account3});
-      await EscrowInterface.singleVote(id, true, {from: account4});
-      await EscrowInterface.singleVote(id, true, {from: account5});
-      await EscrowInterface.singleVote(id, true, {from: account6});
+      await EscrowInterface.singleVote(id, false, {from: account1});    // yes
+      await EscrowInterface.singleVote(id, true, {from: account3});   // no
 
       // Test threshold
       const outcome = await EscrowInterface.thresholdReached(id);
       assert.equal(outcome, true);
     });
 
-    it('can\'t hack rounds', async () => {
-    });
+    it('does not meet threshold', async () => {
+      const r1Start = allocEndTime + 10;
+      const r1End   = r1Start + 10;
 
-    it('can\'t double vote', async () => {
+      // Alloc votes
+      await EscrowInterface.setBlockTime(new BigNumber(50), {from: company});
+      await EscrowInterface.allocVotes(id, {from: account1});
+      await EscrowInterface.allocVotes(id, {from: account3});
+
+      // Set round 1 times
+      await EscrowInterface.setRoundWindow(id, 1, r1Start, r1End, {from: company});
+
+      // Vote in round 1
+      await EscrowInterface.setBlockTime(r1Start + 5, {from: company});
+      await EscrowInterface.singleVote(id, true, {from: account1});    // yes
+      await EscrowInterface.singleVote(id, false, {from: account3});   // no
+
+      // Test threshold
+      const outcome = await EscrowInterface.thresholdReached(id);
+      assert.equal(outcome, false);
     });
 
   });
 });
-
-/*
-Voters are polled and can vote on a Yes/No escrow release
-  voting decision during a given time period.	
- -- x    - there should be a set vote window. a set of time voters are notified before the vote starts
-A simple majority is required to win the vote.
- -- done - 
-  wallet that is designated by the project
- -- done - 
-*/
-
-
-// uint tokenCount = escrows[id].tokenContract.balanceOf(msg.sender);
-// uint refundAmount = tokenCount * getExchangeRate();
-// uint refundAmount = tokenCount * currentExchangeRate;  // Num and denom style is probably better. Probably need be careful in what gets divided and multiplied first.. e.g. (1/4)*8 vs (1*8)/4
-// require(tokenContract.transferFrom(msg.sender, this, tokenCount));  // make sure params are right
-// msg.sender.send(refundAmount);
-// RefundAmount(msg.sender, refundAmount);
-
-/*
-  // consider privledges. arbitrator?
-  function startVoteRound(bytes32 id) public {
-    require(msg.sender == escrows[id].arbitrator
-         || msg.sender == escrows[id].company); 
-
-    uint startTime = escrows[id].round[roundNum + 1].startTime;
-    uint endTime = escrows[id].round[roundNum + 1].endTime;
-    uint roundNum = escrows[id].roundNum;
-
-    // make sure in voting window
-    require(getBlockTime() >= startTime && getBlockTime() <= endTime); 
-  }
-*/

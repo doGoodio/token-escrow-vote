@@ -119,7 +119,6 @@ contract Escrow {
   }
 
   // keep track of failures
-  // security note, _all_ round time windows should be set before escrow starts
   function failEscrow(bytes32 id) public {
     var roundData =  escrows[id].round[escrows[id].roundNum];
     
@@ -195,20 +194,22 @@ contract Escrow {
   function singleVote(bytes32 id, bool votedYes) public {
     // Error check
     uint roundNum = escrows[id].roundNum;
-    var escrowRound = escrows[id].round[roundNum];
     uint userVotePower = sqrt(escrows[id].initialTokenCount[msg.sender]);
+    bool userHasNotVoted = !escrows[id].round[roundNum].hasVoted[msg.sender];
+    uint startTime = escrows[id].round[roundNum].startTime;
+    uint endTime = escrows[id].round[roundNum].endTime;
 
-    require(escrowRound.hasVoted[msg.sender] == false);
-    require(getBlockTime() >= escrowRound.startTime && getBlockTime() <= escrowRound.endTime); // make sure in voting window
+    require(userHasNotVoted);
+    require(getBlockTime() >= startTime && getBlockTime() <= endTime); // make sure in voting window
 
     // State changes
     if (votedYes) {
-      escrowRound.yesVotes = escrowRound.yesVotes + userVotePower;
+      escrows[id].round[roundNum].yesVotes = escrows[id].round[roundNum].yesVotes + userVotePower;
     }
     else {
-      escrowRound.noVotes = escrowRound.noVotes + userVotePower;
+      escrows[id].round[roundNum].noVotes = escrows[id].round[roundNum].noVotes + userVotePower;
     }
-    escrowRound.hasVoted[msg.sender] = true;
+    escrows[id].round[roundNum].hasVoted[msg.sender] = true;
   }
 
   // =====
@@ -221,13 +222,16 @@ contract Escrow {
 
   function roundOpen(bytes32 id) returns (bool)  {return true;}
 
-  function sqrt(uint x) constant returns (uint y) {
+  function sqrt(uint x) constant returns (uint) {
     uint z = (x + 1) / 2;
-    y = x;
+    uint y = x;
+
     while (z < y) {
         y = z;
         z = (x / z + z) / 2;
     }
+
+    return y;
   }
 
   modifier isArbitrator (bytes32 id) { 
