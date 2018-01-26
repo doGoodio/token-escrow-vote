@@ -137,7 +137,6 @@ Voters are polled and can vote on a Yes/No escrow release
  -- x    - there should be a set vote window. a set of time voters are notified before the vote starts
 A simple majority is required to win the vote.
  -- done - 
-Funds are released and transfered to an Ethereum
   wallet that is designated by the project
  -- done - 
 */

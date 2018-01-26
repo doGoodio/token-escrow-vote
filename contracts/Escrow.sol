@@ -166,14 +166,12 @@ contract Escrow {
   // note. consider where tokens go. if tokens go to company, then they can cheat system. if tokens go to this contract, then they are stuck here unless we send them back to company
 
   function allocVotes(bytes32 id) public inAllocVoteTimeFrame(id) {
-    var userTokenCount  = escrows[id].initialTokenCount[msg.sender];
-    var totalTokenCount = escrows[id].tokenContract.balanceOf(msg.sender);
-    var totalVotePower  = escrows[id].totalVotePower;
+    uint userTokens = escrows[id].tokenContract.balanceOf(msg.sender);
 
     // State changes
-    userTokenCount = escrows[id].tokenContract.balanceOf(msg.sender);
-    totalTokenCount = totalTokenCount + userTokenCount;
-    totalVotePower = totalVotePower + sqrt(userTokenCount);
+    escrows[id].initialTokenCount[msg.sender] = userTokens;
+    escrows[id].totalTokenCount = escrows[id].totalTokenCount + userTokens;
+    escrows[id].totalVotePower = escrows[id].totalVotePower + sqrt(userTokens);
   }
 
   // Require approval of entire balanceOf?
