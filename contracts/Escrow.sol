@@ -38,20 +38,18 @@ contract Escrow {
     uint allocStartTime;
     uint allocEndTime;
     uint roundNum;
-    uint numRounds;
-    uint baseExchange;
     bool arbitratorApproved;
     bool failed;
     uint totalRefund;
-    uint totalFunding;
+    uint balance;
     uint totalTokenCount;
     uint totalVotePower;
 
     // Fraction ; // this gave an error "UnimplementedFeatureError"
-    uint abstainNumer; // abstain voting power
-    uint abstainDenom; // abstain voting power
+    //uint abstainNumer; // abstain voting power
+    //uint abstainDenom; // abstain voting power
 
-    mapping (address => uint) initalTokenCount;   // user -> vote-weight
+    mapping (address => uint) initialTokenCount;   // user -> vote-weight
 
     mapping (uint => RoundData) round;
   }
@@ -96,7 +94,7 @@ contract Escrow {
   // COMPANY:
   // ========
 
-  function createEscrow(uint numRounds, address arbitrator, address token, address payoutAddress, uint allocStartTime, uint allocEndTime, uint abstainNumer, uint abstainDenom) {
+  function createEscrow(address arbitrator, address token, address payoutAddress, uint allocStartTime, uint allocEndTime, uint abstainNumer, uint abstainDenom) {
     address company = msg.sender;
     bytes32 id = sha3(company, arbitrator, token, payoutAddress);
 
@@ -104,12 +102,10 @@ contract Escrow {
     escrows[id].arbitrator = arbitrator;
     escrows[id].tokenContract = ERC20(token);
     escrows[id].payoutAddress = payoutAddress;
-    escrows[id].numRounds = numRounds;
-    escrows[id].minVotes = minVotes;
     escrows[id].allocStartTime = allocStartTime;
     escrows[id].allocEndTime = allocEndTime;
-    escrows[id].abstainNumer = abstainNumer;
-    escrows[id].abstainDenom = abstainDenom;
+    //    escrows[id].abstainNumer = abstainNumer;
+    //    escrows[id].abstainDenom = abstainDenom;
 
     EscrowCreation(company, id);
   }
@@ -119,9 +115,10 @@ contract Escrow {
     uint roundNum = escrows[id].roundNum;
     uint yes      = escrows[id].round[roundNum].yesVotes;
     uint no       = escrows[id].round[roundNum].noVotes;
-    uint abstain  = (totalVotePower - yes - no) * escrows[id].abstainNumer / escrows[id].abstainDenom;
+    // uint abstain  = (escrows[id].totalVotePower - yes - no) * escrows[id].abstainNumer / escrows[id].abstainDenom;
+    uint abstain  = (escrows[id].totalVotePower - yes - no) / 10;
 
-    return yes - no - abstain;
+    return yes > no + abstain;
   }
 
   // keep track of failures
@@ -133,16 +130,17 @@ contract Escrow {
     require(thresholdReached(id) == false);
 
     escrows[id].failed = true;
-    escrows[id].totalRefund = escrows[id].totalFunding;
+    escrows[id].totalRefund = escrows[id].balance;
   }
 
   // releases funds to company
+  // increment round number
   function releaseFunds(bytes32 id) public {
     uint funding = escrows[id].round[escrows[id].roundNum].funds2beReleased;
     require(thresholdReached(id));
 
     // State changes
-    require(escrows[id].payoutAddress.send());
+    require(escrows[id].payoutAddress.send(funding));
     escrows[id].totalRefund = escrows[id].totalRefund - funding;
     escrows[id].roundNum = escrows[id].roundNum + 1;
   }
@@ -150,7 +148,7 @@ contract Escrow {
   function payEscrow(bytes32 id) payable public {
     // end of payment at start of round 1, or only in token/vote alloc window?
     require(getBlockTime() < escrows[id].round[0].startTime);
-    escrows[id].totalFunding = escrows[id].totalFunding + msg.value;
+    escrows[id].balance = escrows[id].balance + msg.value;
   }
 
   // -----------------
@@ -173,7 +171,7 @@ contract Escrow {
   function allocVotes(bytes32 id) public inAllocVoteTimeFrame(id) {
     var userTokenCount  = escrows[id].initialTokenCount[msg.sender];
     var totalTokenCount = escrows[id].tokenContract.balanceOf(msg.sender);
-    var totalVotePower  = escrows[id].totalVotePower
+    var totalVotePower  = escrows[id].totalVotePower;
 
     // State changes
     userTokenCount = escrows[id].tokenContract.balanceOf(msg.sender);
@@ -191,6 +189,7 @@ contract Escrow {
     require(escrows[id].failed);
     require(msg.sender.send(refundSize));
   }
+
 
   // voting based on balances at certain point in BC? e.g. minime token? consider people not using it
   function singleVote(bytes32 id, bool votedYes) public {
@@ -211,7 +210,7 @@ contract Escrow {
     }
     escrowRound.hasVoted[msg.sender] = true;
   }
-  
+
   // =====
   // MISC:
   // =====
@@ -229,16 +228,6 @@ contract Escrow {
         y = z;
         z = (x / z + z) / 2;
     }
-  }
-
-  function getExchangeRate() returns (uint){
-    // minimi previous balance, oracle token discount, etc
-    // minime balanceOfAt(msg.sender,  _blockNumber)
-    // baseExchange hardcoded
-    // tokeRatio should be between 0 and 2
-    uint tokenRatio = 1;
-    
-    return 1; //return baseExchange * tokenRatio;
   }
 
   modifier isArbitrator (bytes32 id) { 
