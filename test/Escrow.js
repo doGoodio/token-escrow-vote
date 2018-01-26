@@ -70,7 +70,7 @@ contract('Escrow', function (accounts) {
   });
 
   describe('escrow scenario tests', async () => {
-    const numRounds = new BigNumber(3);
+    //const numRounds = new BigNumber(3);
     const abstainNum = new BigNumber(1);
     const abstainDenom = new BigNumber(6);
     const allocStartTime = new BigNumber(10);
@@ -87,7 +87,7 @@ contract('Escrow', function (accounts) {
 
       token = await ERC20.new(tokenSupply, tokenName, tokenDecimals, tokenSymbol, {from: account1});
       await EscrowInterface.init({from: account1});
-      await EscrowInterface.createEscrow(setId, numRounds, arbitrator, token.address, payoutAddress, allocStartTime, allocEndTime, abstainNum, abstainDenom, {from: account1});
+      await EscrowInterface.createEscrow(setId, arbitrator, token.address, payoutAddress, allocStartTime, allocEndTime, abstainNum, abstainDenom, {from: account1});
     });
 
 
@@ -113,19 +113,19 @@ contract('Escrow', function (accounts) {
       // Test: before window
       await EscrowInterface.setBlockTime(new BigNumber(0), {from: account1});
       await EscrowInterface.allocVotes(id, {from: account2});
-      const vw2 = await EscrowInterface.get_voteWeight(id, account2);
+      const vw2 = await EscrowInterface.getUserVotePower(id, account2);
       assert.equal(vw2.toNumber(), (new BigNumber(0)).toNumber());
 
       // Test: in window
       await EscrowInterface.setBlockTime(new BigNumber(50), {from: account1});
       await EscrowInterface.allocVotes(id, {from: account3});
-      const vw3 = await EscrowInterface.get_voteWeight(id, account3);
+      const vw3 = await EscrowInterface.getUserVotePower(id, account3);
       assert.equal(vw3.toNumber(), bal3.sqrt().floor().toNumber());
 
       // Test: after window
       await EscrowInterface.setBlockTime(new BigNumber(150), {from: account1});
       await EscrowInterface.allocVotes(id, {from: account4});
-      const vw4 = await EscrowInterface.get_voteWeight(id, account4);
+      const vw4 = await EscrowInterface.getUserVotePower(id, account4);
       assert.equal(vw4.toNumber(), (new BigNumber(0)).toNumber());
     });
   });

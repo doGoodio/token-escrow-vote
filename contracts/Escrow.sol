@@ -75,9 +75,6 @@ contract Escrow {
   function get_round_noVotes(bytes32 id, uint roundNum) external constant returns (uint) { return escrows[id].round[roundNum].noVotes; }
   function get_round_hasVoted(bytes32 id, uint roundNum, address user) external constant returns (bool) { return escrows[id].round[roundNum].hasVoted[user]; }
 
-  // User calls to know the minimum voting power they have
-  function getminVotingPower(bytes32 id, address user) external constant returns (uint num, uint denom) { return (sqrt(escrows[id].initialTokenCount[user]), escrows[id].totalVotePower); }
-
   // =====================
   // ARBITRATOR & COMPANY:
   // =====================

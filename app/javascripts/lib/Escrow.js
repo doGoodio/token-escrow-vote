@@ -33,14 +33,47 @@ var setBlockTime = async(t, web3Params) => {
 // Getters:
 // ========
 
-exports.get_initialTokenCount      = (id, user) => escrow.get_initialTokenCount(id,user);
-exports.get_round_funds2beReleased = (id, uint) => escrow.get_round_funds2beReleased(id,user);
-exports.get_round_endTime          = (id, roundNum) => escrow.get_round_endTime(id,user);
-exports.get_round_startTime        = (id, roundNum) => escrow.get_round_startTime(id,user);
-exports.get_round_yesVotes         = (id, roundNum) => escrow.get_round_yesVotes(id,user);
-exports.get_round_noVotes          = (id, roundNum) => escrow.get_round_noVotes(id,user);
-exports.get_round_hasVoted         = (id, roundNum, user) => escrow.get_round_hasVoted(id,user);
-exports.getminVotingPower          = (id, user)     => escrow.getminVotingPower(id, user);
+// Contract variable getters
+var get_initialTokenCount = (id, user) => escrow.get_initialTokenCount(id,user);
+var get_round_funds2beReleased = (id, uint) => escrow.get_round_funds2beReleased(id,user); 
+var get_round_endTime = (id, roundNum) => escrow.get_round_endTime(id,user);
+var get_round_startTime = (id, roundNum) => escrow.get_round_startTime(id,user);
+var get_round_yesVotes = (id, roundNum) => escrow.get_round_yesVotes(id,user);
+var get_round_noVotes = (id, roundNum) => escrow.get_round_noVotes(id,user);
+var get_round_hasVoted = (id, roundNum, user) => escrow.get_round_hasVoted(id,user);
+
+exports.get_initialTokenCount;      
+exports.get_round_funds2beReleased; 
+exports.get_round_endTime;          
+exports.get_round_startTime;        
+exports.get_round_yesVotes;         
+exports.get_round_noVotes;          
+exports.get_round_hasVoted;         
+
+/*
+exports.getUserVotePercentage = async(id, user) => {
+  const tc = await get_initialTokenCount(id, user);
+  const round = await escrow()()()()()();
+  const yes = await get_round_yesVotes(id, round)
+  const no = await get_round_noVotes(id, round)
+
+  const num = await escrow.sqrt(tc);
+  const denom = yes + no;
+
+  return [num, denom];
+}
+
+
+export.getUserMinVotePercentage = async(id, user) => {
+
+  return [num, denom]
+}
+*/
+
+exports.getUserVotePower = async(id, user) => {
+  const tc = await get_initialTokenCount(id, user);
+  return escrow.sqrt(tc);
+}
 
 // =================
 // Company functions
@@ -54,15 +87,15 @@ var setRound = async(begin, end) => {
 var getEscrowData = () => escrow.escrows;
 
 // return escrow id, 24 bytes
-var createEscrow = async (callback_fn, numRounds, arbitrator, token, payoutAddr, allocStartTime, allocEndTime, abstainNumer, abstainDenom, web3Params) => {
+var createEscrow = async (callback_fn, arbitrator, token, payoutAddr, allocStartTime, allocEndTime, abstainNumer, abstainDenom, web3Params) => {
   const company = web3Params['from'];
   if (simulated) {
     if (Math.random() < failPercentage) reject('Tx failed!');
     return '0xae67984724872020842709842faee8a89a99Ae5d';
   }
 
-  const tx = await escrow.createEscrow(numRounds, arbitrator, token, payoutAddr, minVotes, allocStartTime, allocEndTime);
-  console.log('Created escrow: rounds-' + numRounds + '\narb -> ' + arbitrator + '\ntoken -> ' + token + '\npayout -> ' + payoutAddr + '\nminVotes -> ' + minVotes + '\nallocStart -> ' + allocStartTime + '\nallocEnd -> ' + allocEndTime);
+  const tx = await escrow.createEscrow(arbitrator, token, payoutAddr, allocStartTime, allocEndTime, abstainNumer, abstainDenom, web3Params);
+  console.log('Created escrow:' + '\narb -> ' + arbitrator + '\ntoken -> ' + token + '\npayout -> ' + payoutAddr + '\nallocStart -> ' + allocStartTime + '\nallocEnd -> ' + allocEndTime);
 
   const tmp = escrow.EscrowCreation();
   escrow.EscrowCreation().watch(function(error, result) {
