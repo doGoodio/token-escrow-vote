@@ -151,9 +151,14 @@ contract Escrow {
   // -----------------
   // Escrow parameters
   // -----------------
+
+  // Can only set once per round
   function setRoundWindow(bytes32 id, uint roundNum, uint start, uint end) isCompany(id) public  {
     require(start < end);
     require(start > escrows[id].allocEndTime);
+    require(escrows[id].round[roundNum].endTime == 0);
+    // require(roundNum < numberOfRounds);
+
 
     escrows[id].round[roundNum].startTime = start;
     escrows[id].round[roundNum].endTime   = end;

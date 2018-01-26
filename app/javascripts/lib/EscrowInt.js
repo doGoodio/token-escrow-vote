@@ -107,6 +107,12 @@ var createEscrow = async (arbitrator, token, payoutAddr, allocStartTime, allocEn
     }
   };
 }
+
+var setRoundWindow = async(id, roundNum, start, end, web3Params) => {
+  const tx = await escrow.setRoundWindow(id, roundNum - 1, start, end, web3Params);
+}
+
+
 // ==============
 // User functions
 // ==============
@@ -120,11 +126,29 @@ var allocVotes = async(id, web3Params) => {
   if (escrow == undefined) throw('Escrow undefined');
 
   const tx = await escrow.allocVotes(id, web3Params); 
-
-  const txFailed = false; // todo check if transaction failed
-  if(txFailed) 
-    throw('Escrow undefined');
 }
+
+// run this during token sale
+var singleVote = async(id, vote, web3Params) => {
+  // If simulated allocate fake votes
+  if (simulated) return;
+
+  // For all other cases, testrpc, testnet, mainnet
+  if (escrow == undefined) throw('Escrow undefined');
+
+  const tx = await escrow.singleVote(id, vote, web3Params); 
+}
+
+var thresholdReached = async(id, web3Params) => {
+  // If simulated allocate fake votes
+  if (simulated) return;
+
+  // For all other cases, testrpc, testnet, mainnet
+  if (escrow == undefined) throw('Escrow undefined');
+
+  return escrow.thresholdReached(id, web3Params); 
+}
+
 
 function userRefund(id) {
     if (simulated && Math.random() < failPercentage) throw('Tx failed!');
@@ -145,11 +169,14 @@ exports.getEscrowData = getEscrowData;
 
 // User
 exports.allocVotes = allocVotes;
+exports.singleVote = singleVote;
+exports.thresholdReached = thresholdReached;
 //exports.getRefund = getRefund;
-//exports allocVotes = allocVotes;
 
 // Company
 exports.createEscrow = createEscrow;
+exports.setRoundWindow = setRoundWindow;
+
 //exports.singleVote = singleVote;
 //exports.setRoundWindow = setRoundWindow;
 
